@@ -25,6 +25,15 @@ def getFolderContentPaths(folder_path):
         return_list.append(item)
     return return_list
 
+def getJSONFilePaths(folder_path):
+    items = os.listdir(folder_path)
+    return_list = []
+    for item in items:
+        if item.endswith(".json"):
+            item = folder_path + '/' + item
+            return_list.append(item)
+    return return_list
+
 def verifyProjectFolder(folder_path):
     contents = os.listdir(folder_path)
     assert 'train' in contents, "Specified folder is not a valid Project Folder. Does not contain training folder."
