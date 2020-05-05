@@ -19,7 +19,8 @@ def get_frame_as_jpeg(in_filename, frame_num):
 
 def save_img(item,target_raw_path):
     source = item.source
-    time = item.timestamp
+    time = int(item.timestamp)
+    time = time * 60
     frame = get_frame_as_jpeg(source,time)
     save_to_path = target_raw_path[:-4] +'/images/'+item.identifier+'.jpg'
     return_frame = frame
@@ -35,8 +36,10 @@ def save_label(item,target_raw_path):
         top = round(region.y, 3)
         right = round(left + region.width, 3)
         bottom = round(top + region.height, 3)
+        source = item.source
+        time = item.timestamp
 
-        current_line = tag + ' 0.00 0 0 ' + str(left) + ' ' + str(top) + ' ' + str(right) + ' ' + str(bottom) + ' 0 0 0 0 0 0 0'
+        current_line = tag + ' 0.00 0 0 ' + str(left) + ' ' + str(top) + ' ' + str(right) + ' ' + str(bottom) + ' 0 0 0 0 0 0 0' + ' ' + str(source) + ' ' + str(time)
         current_file.write(current_line+'\n')
     current_file.close()
 
