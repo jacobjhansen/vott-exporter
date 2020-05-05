@@ -8,8 +8,8 @@ def getFolderPath(folder_name):
         os.listdir(dirpath)
         assert verifyProjectFolder(dirpath) == True,'Given folder is not a valid Project Folder'
         assert verifyTrainFolder(dirpath+'/train') == True,'Given folder is not a valid Project Folder'
-        raw_path = dirpath + '/train/raw'
-        vott_path = dirpath + '/vott'
+        raw_path = dirpath + 'train/raw'
+        vott_path = dirpath + 'vott'
         return dirpath,raw_path,vott_path
     except:
         raise ValueError('The Specified Folder does not exist')
