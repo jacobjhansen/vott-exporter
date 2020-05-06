@@ -4,28 +4,22 @@ from cv2 import cv2
 import ffmpeg
 from io import BytesIO
 import sys,os
-
-def get_frame_as_jpeg(in_filename, frame_num):
-    out, err = (
-        ffmpeg
-        .input(in_filename)
-        .filter('select', 'gte(n,{})'.format(frame_num))
-        .output('pipe:', vframes=1, format='image2', vcodec='mjpeg')
-        .run(capture_stdout=True,quiet=True)
-    )
-    file_jpgdata = BytesIO(out)
-    frame = Image.open(file_jpgdata)
-    return frame
+import subprocess
 
 def save_img(item,target_raw_path):
     source = item.source
+    file_name = source.split('/')[-1][:-4]
     time = int(item.timestamp)
-    time = time * 60
-    frame = get_frame_as_jpeg(source,time)
+    time += 1 #Account for 1 based indexing on output, vs 0 based indexing on assets
+    image_source = target_raw_path+'/'+file_name+'t='+str(time)+'.png'
+    frame = Image.open(image_source)
+    try:
+        save_categories(item,frame,target_raw_path)
+    except:
+        pass
     save_to_path = target_raw_path[:-4] +'/images/'+item.identifier+'.jpg'
-    return_frame = frame
     frame.save(save_to_path)
-    return return_frame
+    pass
 
 def save_label(item,target_raw_path):
     save_to_path = target_raw_path[:-4] +'/labels/'+item.identifier+'.txt'
@@ -36,36 +30,48 @@ def save_label(item,target_raw_path):
         top = round(region.y, 3)
         right = round(left + region.width, 3)
         bottom = round(top + region.height, 3)
-        source = item.source
-        time = item.timestamp
-
-        current_line = tag + ' 0.00 0 0 ' + str(left) + ' ' + str(top) + ' ' + str(right) + ' ' + str(bottom) + ' 0 0 0 0 0 0 0' + ' ' + str(source) + ' ' + str(time)
+        current_line = tag + ' 0.00 0 0 ' + str(left) + ' ' + str(top) + ' ' + str(right) + ' ' + str(bottom) + ' 0 0 0 0 0 0 0'
         current_file.write(current_line+'\n')
     current_file.close()
 
+def batch_frame_export(target_raw_path):
+    command = 'ffmpeg -i '+target_raw_path+' -vf fps=1 '+target_raw_path[:-4]+ 't=%d.png'
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    process.wait()
+    print(process.returncode)
 
-def main(asset_list,target_raw_path):
+def save_categories(item,frame,target_raw_path):
+    f1or region in item.region_list:
+        save_string = target_raw_path[:-4] + '/categories/' + str(region.tag) +'/'+region.identifier+'.jpeg'
+        imcrop = frame
+        rectbox = (region.x,region.y,region.x+region.width,region.y+region.height)
+        croppedimg = imcrop.crop(rectbox)
+        croppedimg.save(save_string)
+    
+def garbage_collector(target_raw_path):
+    filelist = [ f for f in os.listdir(target_raw_path) if f.endswith(".png") ]
+    for f in filelist:
+        os.remove(os.path.join(target_raw_path, f))
+
+def main(asset_list,target_raw_path,raw_videos):
+    raw_image_list = []
     os.system('mkdir ' + target_raw_path[:-4] + '/categories')
-    i=1
+
+    tag_list = ['cow','fence-panels', 'building', 'trailer', 'vehicle', 'fences', 'person', 'fence-post','farm-animal','gate', 'grain-auger', 'bale', 'water-tank']
+
+    for item in tag_list:
+        os.system('mkdir ' + target_raw_path[:-4] + '/categories/' + item)
+
+    #for video in raw_videos:
+        #raw_image_list = batch_frame_export(video)
+
+    i = 1
     list_length = len(asset_list)
     for item in asset_list:
-        img_obj = save_img(item,target_raw_path)
+        save_img(item,target_raw_path)
         save_label(item,target_raw_path)
         print("Running... " + str(i) +'/'+str(list_length))
         sys.stdout.write("\033[F") # Cursor up one line
         i+=1
-
-# import cv2
-#
-## Opens the Video file
-# cap= cv2.VideoCapture('C:/New/Videos/Play.mp4')
-# i=0
-# while(cap.isOpened()):
-#    ret, frame = cap.read()
-#    if ret == False:
-#         break
-#    cv2.imwrite('kang'+str(i)+'.jpg',frame)
-#    i+=1
-#
-# cap.release()
-# cv2.destroyAllWindows()
+    print("Running garbage collection...")
+    garbage_collector(target_raw_path)
